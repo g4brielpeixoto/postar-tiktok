@@ -10,10 +10,11 @@ ENV PYTHONUNBUFFERED=1 \
 # Set working directory
 WORKDIR /app
 
-# Install minimal system dependencies
+# Install system dependencies including xvfb
 RUN apt-get update && apt-get install -y \
     wget \
     ca-certificates \
+    xvfb \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
@@ -21,12 +22,12 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Google Chrome (não apenas o Chromium) e suas dependências
+# Install Google Chrome and its dependencies
 RUN playwright install chrome
 RUN playwright install-deps chrome
 
 # Copy the rest of the application
 COPY . .
 
-# Set entry point
-CMD ["python", "main.py"]
+# Set entry point using xvfb-run to provide a virtual display
+CMD ["xvfb-run", "--server-args=-screen 0 1024x768x24", "python", "main.py"]
