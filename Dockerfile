@@ -10,11 +10,12 @@ ENV PYTHONUNBUFFERED=1 \
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including xvfb
+# Install system dependencies including xvfb and xauth
 RUN apt-get update && apt-get install -y \
     wget \
     ca-certificates \
     xvfb \
+    xauth \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
