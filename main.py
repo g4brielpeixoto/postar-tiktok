@@ -85,7 +85,7 @@ def main():
     s3.download_file(S3_BUCKET, video_key, local_filename)
     
     chapter = extract_chapter(filename)
-    description = f"Hoje vamos ler Genesis {chapter}..."
+    description = f"Hoje vamos ler Genesis {chapter}"
     
     print(f"Uploading to TikTok with description: {description}")
     
