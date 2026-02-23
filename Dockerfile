@@ -21,10 +21,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright Chromium and let it install its own system dependencies
-# Isso resolve o problema de nomes de pacotes diferentes entre versões do Debian
-RUN playwright install chromium
-RUN playwright install-deps chromium
+# Install Google Chrome (não apenas o Chromium) e suas dependências
+RUN playwright install chrome
+RUN playwright install-deps chrome
 
 # Copy the rest of the application
 COPY . .
