@@ -1,0 +1,8 @@
+services:
+  tiktok-uploader:
+    build: .
+    volumes:
+      - ./cookies.txt:/app/cookies.txt
+    env_file:
+      - .env
+    restart: "no"
