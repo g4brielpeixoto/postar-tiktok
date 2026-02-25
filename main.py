@@ -1,6 +1,7 @@
 import os
 import sys
 import boto3
+import time
 
 def extract_chapter(filename):
     try:
@@ -69,19 +70,24 @@ def main():
     
     try:
         from tiktok_uploader.upload import TikTokUploader
-        import time
         
+        # Criamos o uploader
         uploader = TikTokUploader(cookies=COOKIES_FILE)
         
-        print("Waiting 5 seconds for browser to stabilize...")
-        time.sleep(5)
-        
-        print("Starting video upload...")
+        print("Iniciando upload e tentando ignorar popups...")
         sys.stdout.flush()
+
+        # O segredo aqui é que a lib tiktok-uploader permite passar argumentos extras 
+        # que são repassados para o Playwright em algumas versões, ou ela mesma tenta fechar.
+        # Mas vamos focar em deixar o Xvfb bem limpo.
         
-        # REMOVIDO: headless=False para evitar o erro de 'multiple values'
-        # A lib usará o display (real ou Xvfb) automaticamente.
-        success = uploader.upload_video(local_filename, description=description)
+        # Tentativa de upload
+        # O headless=False foi removido daqui para evitar conflito de múltiplos valores.
+        # A lib usará o display disponível (real ou Xvfb) automaticamente.
+        success = uploader.upload_video(
+            local_filename, 
+            description=description
+        )
         
         if success:
             print("Upload successful!")
@@ -91,6 +97,9 @@ def main():
             
     except Exception as e:
         print(f"Error during upload: {e}")
+        # Se você estiver vendo o browser, tente clicar no "Skip" manualmente agora!
+        # Na EC2, precisaremos de um patch na lib ou um script de pré-sessão.
+        
     finally:
         if os.path.exists(local_filename):
             os.remove(local_filename)

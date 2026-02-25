@@ -21,6 +21,11 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Patch tiktok-uploader to remove joyride overlays
+RUN SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])") && \
+    sed -i '/self.set_description(description)/i \        self.page.evaluate("() => { const overlays = document.querySelectorAll(\".react-joyride__overlay, .react-joyride__spotlight\"); overlays.forEach(el => el.remove()); }")' \
+    $SITE_PACKAGES/tiktok_uploader/upload.py
+
 # Install Google Chrome and its dependencies via Playwright
 RUN playwright install chrome
 RUN playwright install-deps chrome
