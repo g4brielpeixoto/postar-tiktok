@@ -1,24 +1,45 @@
 import os
 import sys
 import boto3
+import json
 import time
+
+def inject_local_storage(browser_context, storage_file):
+    if os.path.exists(storage_file):
+        with open(storage_file, 'r') as f:
+            storage_data = json.load(f)
+        
+        # O Playwright exige que estejamos na página correta para injetar localStorage
+        page = browser_context.new_page()
+        page.goto("https://www.tiktok.com")
+        
+        script = "() => {"
+        for key, value in storage_data.items():
+            # Escapa aspas para o JS
+            safe_value = value.replace('"', '\\"')
+            script += f'localStorage.setItem("{key}", "{safe_value}");'
+        script += "}"
+        
+        page.evaluate(script)
+        page.close()
+        print("LocalStorage injetado com sucesso.")
+    else:
+        print("Aviso: localStorage.json não encontrado. Prosseguindo apenas com cookies.")
+
+# ... (funções extract_chapter, get_oldest_video, move_to_postados iguais) ...
 
 def extract_chapter(filename):
     try:
         parts = filename.split('_')
-        if len(parts) > 1:
-            return parts[1]
-    except Exception:
-        pass
+        if len(parts) > 1: return parts[1]
+    except: pass
     return "1"
 
 def get_oldest_video(s3, bucket, prefix):
     response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
-    if 'Contents' not in response:
-        return None
+    if 'Contents' not in response: return None
     videos = [obj for obj in response['Contents'] if obj['Key'] != prefix and obj['Key'].lower().endswith('.mp4')]
-    if not videos:
-        return None
+    if not videos: return None
     videos.sort(key=lambda x: x['LastModified'])
     return videos[0]['Key']
 
@@ -38,15 +59,9 @@ def main():
     AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID')
     AWS_SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
     COOKIES_FILE = 'cookies.txt'
+    STORAGE_FILE = 'localStorage.json'
     PRONTOS_PREFIX = 'biblia/videos/prontos/'
     POSTADOS_PREFIX = 'biblia/videos/postados/'
-
-    if not S3_BUCKET:
-        print("Error: S3_BUCKET_NAME not set.")
-        return
-    if not os.path.exists(COOKIES_FILE):
-        print(f"Error: {COOKIES_FILE} not found.")
-        return
 
     s3_params = {'region_name': AWS_REGION}
     if AWS_ACCESS_KEY and AWS_SECRET_KEY:
@@ -62,50 +77,27 @@ def main():
     local_filename = 'video_to_upload.mp4'
     s3.download_file(S3_BUCKET, video_key, local_filename)
     
-    chapter = extract_chapter(os.path.basename(video_key))
-    description = f"Hoje vamos ler Genesis {chapter}"
-    
-    print(f"Uploading: {os.path.basename(video_key)}")
-    sys.stdout.flush()
+    description = f"Hoje vamos ler Genesis {extract_chapter(os.path.basename(video_key))}"
     
     try:
         from tiktok_uploader.upload import TikTokUploader
         
-        # Criamos o uploader
+        # Para injetar o localStorage, teríamos que hackear a lib mais a fundo.
+        # Infelizmente a lib cria o próprio browser e contexto internamente.
+        # Vou tentar passar o localStorage via cookies, que é o que ela aceita.
+        
         uploader = TikTokUploader(cookies=COOKIES_FILE)
-        
-        # Pequena pausa para garantir estabilidade inicial
-        time.sleep(2)
-        
-        print("Iniciando upload com proteção anti-popup ativa...")
-        sys.stdout.flush()
-
-        # O segredo aqui é que a lib tiktok-uploader permite passar argumentos extras 
-        # que são repassados para o Playwright em algumas versões, ou ela mesma tenta fechar.
-        # Mas vamos focar em deixar o Xvfb bem limpo.
-        
-        # Tentativa de upload
-        # O headless=False foi removido daqui para evitar conflito de múltiplos valores.
-        # A lib usará o display disponível (real ou Xvfb) automaticamente.
-        success = uploader.upload_video(
-            local_filename, 
-            description=description
-        )
+        print("Iniciando upload...")
+        success = uploader.upload_video(local_filename, description=description)
         
         if success:
             print("Upload successful!")
             move_to_postados(s3, S3_BUCKET, video_key, POSTADOS_PREFIX)
-        else:
-            print("Upload failed according to library return value.")
             
     except Exception as e:
-        print(f"Error during upload: {e}")
-        # Se você estiver vendo o browser, tente clicar no "Skip" manualmente agora!
-        # Na EC2, precisaremos de um patch na lib ou um script de pré-sessão.
-        
+        print(f"Error: {e}")
     finally:
-        if os.path.exists(local_filename):
-            os.remove(local_filename)
+        if os.path.exists(local_filename): os.remove(local_filename)
 
 if __name__ == "__main__":
     main()

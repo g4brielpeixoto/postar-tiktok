@@ -5,6 +5,7 @@ services:
       - DISPLAY=${DISPLAY}
     volumes:
       - ./cookies.txt:/app/cookies.txt
+      - ./localStorage.json:/app/localStorage.json
       - /tmp/.X11-unix:/tmp/.X11-unix
     env_file:
       - .env

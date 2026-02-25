@@ -21,9 +21,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Patch tiktok-uploader to continuously remove joyride overlays using a MutationObserver
+# Patch tiktok-uploader to inject localStorage
 RUN SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])") && \
-    sed -i "/self.page.goto(upload_url)/a \        self.page.add_init_script(\"\"\"const observer = new MutationObserver(() => { const overlays = document.querySelectorAll('.react-joyride__overlay, .react-joyride__spotlight, [data-test-id=\'joyride-portal\']'); overlays.forEach(el => el.remove()); }); observer.observe(document.documentElement, { childList: true, subtree: true });\"\"\")" \
+    sed -i "/self.context.add_cookies(self.cookies)/a \        import json, os\n        if os.path.exists('localStorage.json'):\n            with open('localStorage.json', 'r') as f: storage_data = json.load(f)\n            self.page.goto('https://www.tiktok.com')\n            self.page.evaluate('(data) => { for (const key in data) { localStorage.setItem(key, data[key]); } }', storage_data)" \
     $SITE_PACKAGES/tiktok_uploader/upload.py
 
 # Install Google Chrome and its dependencies via Playwright
