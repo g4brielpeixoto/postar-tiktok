@@ -74,7 +74,10 @@ def main():
         # Criamos o uploader
         uploader = TikTokUploader(cookies=COOKIES_FILE)
         
-        print("Iniciando upload e tentando ignorar popups...")
+        # Pequena pausa para garantir estabilidade inicial
+        time.sleep(2)
+        
+        print("Iniciando upload com proteção anti-popup ativa...")
         sys.stdout.flush()
 
         # O segredo aqui é que a lib tiktok-uploader permite passar argumentos extras 

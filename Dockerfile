@@ -21,9 +21,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Patch tiktok-uploader to remove joyride overlays
+# Patch tiktok-uploader to continuously remove joyride overlays using a MutationObserver
 RUN SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])") && \
-    sed -i '/self.set_description(description)/i \        self.page.evaluate("() => { const overlays = document.querySelectorAll(\".react-joyride__overlay, .react-joyride__spotlight\"); overlays.forEach(el => el.remove()); }")' \
+    sed -i "/self.page.goto(upload_url)/a \        self.page.add_init_script(\"\"\"const observer = new MutationObserver(() => { const overlays = document.querySelectorAll('.react-joyride__overlay, .react-joyride__spotlight, [data-test-id=\'joyride-portal\']'); overlays.forEach(el => el.remove()); }); observer.observe(document.documentElement, { childList: true, subtree: true });\"\"\")" \
     $SITE_PACKAGES/tiktok_uploader/upload.py
 
 # Install Google Chrome and its dependencies via Playwright
