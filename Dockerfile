@@ -8,12 +8,13 @@ ENV PYTHONUNBUFFERED=1 \
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including xvfb for virtual display
+# Install system dependencies including xvfb and x11vnc
 RUN apt-get update && apt-get install -y \
     wget \
     ca-certificates \
     xvfb \
     xauth \
+    x11vnc \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 

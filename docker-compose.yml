@@ -1,6 +1,8 @@
 services:
   tiktok-uploader:
     build: .
+    ports:
+      - "5900:5900"
     environment:
       - DISPLAY=${DISPLAY}
     volumes:
