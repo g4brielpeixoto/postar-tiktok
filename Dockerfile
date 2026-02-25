@@ -3,14 +3,12 @@ FROM python:3.11-slim
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
-    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
-    S3_BUCKET_NAME="" \
-    AWS_REGION="us-east-1"
+    DISPLAY=:99
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including xvfb and xauth
+# Install system dependencies including xvfb for virtual display
 RUN apt-get update && apt-get install -y \
     wget \
     ca-certificates \
@@ -23,12 +21,13 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Google Chrome and its dependencies
+# Install Google Chrome and its dependencies via Playwright
 RUN playwright install chrome
 RUN playwright install-deps chrome
 
-# Copy the rest of the application
+# Copy the rest of the application and the start script
 COPY . .
+RUN chmod +x start.sh
 
-# Set entry point using xvfb-run to provide a virtual display
-CMD ["xvfb-run", "--server-args=-screen 0 1024x768x24", "python", "main.py"]
+# Use start.sh to launch Xvfb and then the Python script
+CMD ["./start.sh"]

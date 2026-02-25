@@ -1,8 +1,13 @@
 services:
   tiktok-uploader:
     build: .
+    environment:
+      - DISPLAY=${DISPLAY}
     volumes:
       - ./cookies.txt:/app/cookies.txt
+      - /tmp/.X11-unix:/tmp/.X11-unix
     env_file:
       - .env
     restart: "no"
+    tty: true
+    stdin_open: true
