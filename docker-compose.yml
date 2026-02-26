@@ -5,6 +5,7 @@ services:
       - "5900:5900"
     environment:
       - DISPLAY=${DISPLAY}
+      - ENABLE_VNC=true
     volumes:
       - ./cookies.txt:/app/cookies.txt
       - ./localStorage.json:/app/localStorage.json
