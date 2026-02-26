@@ -2,6 +2,7 @@ import os
 import sys
 import boto3
 import json
+import random
 import time
 
 def inject_local_storage(browser_context, storage_file):
@@ -9,13 +10,11 @@ def inject_local_storage(browser_context, storage_file):
         with open(storage_file, 'r') as f:
             storage_data = json.load(f)
         
-        # O Playwright exige que estejamos na página correta para injetar localStorage
         page = browser_context.new_page()
         page.goto("https://www.tiktok.com")
         
         script = "() => {"
         for key, value in storage_data.items():
-            # Escapa aspas para o JS
             safe_value = value.replace('"', '\\"')
             script += f'localStorage.setItem("{key}", "{safe_value}");'
         script += "}"
@@ -26,14 +25,60 @@ def inject_local_storage(browser_context, storage_file):
     else:
         print("Aviso: localStorage.json não encontrado. Prosseguindo apenas com cookies.")
 
-# ... (funções extract_chapter, get_oldest_video, move_to_postados iguais) ...
+def generate_description(filename):
+    # Extrai o Livro e o Capítulo do nome do arquivo
+    # Exemplo: Gênesis_4_1771868799092.mp4
+    # parts[0] = Gênesis, parts[1] = 4
+    parts = filename.split('_')
+    book = parts[0] if len(parts) > 0 else "Bíblia"
+    chapter = parts[1] if len(parts) > 1 else "1"
+    
+    # Limpa extensões se estiverem presentes
+    book = book.replace('.mp4', '')
+    chapter = chapter.replace('.mp4', '')
 
-def extract_chapter(filename):
-    try:
-        parts = filename.split('_')
-        if len(parts) > 1: return parts[1]
-    except: pass
-    return "1"
+    templates = [
+        "📖🔥 Hoje vamos ler [Livro] [Capítulo] — Prepare seu coração, porque essa Palavra pode transformar o seu dia!",
+        "✨📜 Está pronto? Hoje a leitura é [Livro] [Capítulo] — Deus pode falar com você através desse capítulo!",
+        "🙏📖 Vamos mergulhar juntos em [Livro] [Capítulo] — Ouça com fé e atenção!",
+        "🔥👀 Você precisa ouvir isso! Hoje estamos em [Livro] [Capítulo] — Palavra poderosa!",
+        "📚💡 Mais um dia na presença de Deus! Leitura de [Livro] [Capítulo] começa agora!",
+        "🌅📖 Comece o dia com propósito: [Livro] [Capítulo] — deixe Deus conduzir seus passos!",
+        "⚔️🔥 Capítulo forte hoje! Vamos ler [Livro] [Capítulo] — prepare-se!",
+        "🕊️📜 Palavra viva para sua vida: [Livro] [Capítulo] — escute até o final!",
+        "⏳📖 Tire alguns minutos para Deus — hoje é [Livro] [Capítulo]!",
+        "💛📚 Se essa Palavra tocar você, compartilhe! Leitura de [Livro] [Capítulo] começa agora!",
+        "📖🌟 Deus ainda fala! Hoje vamos ler [Livro] [Capítulo] — fique comigo!",
+        "🔥📜 Um capítulo que pode mudar sua história: [Livro] [Capítulo]!",
+        "🙌📖 Vamos crescer espiritualmente juntos — hoje é [Livro] [Capítulo]!",
+        "👂✨ Ouça com atenção: [Livro] [Capítulo] — pode ser a resposta que você precisava!",
+        "💬📜 Deus tem algo pra te dizer hoje em [Livro] [Capítulo]!",
+        "📖❤️ Um capítulo por dia, alimentando a alma — [Livro] [Capítulo]!",
+        "🔔📚 Pare tudo e venha ouvir [Livro] [Capítulo] — Palavra que edifica!",
+        "🕯️📖 Momento de paz e reflexão: [Livro] [Capítulo] começa agora!",
+        "🌊📜 Mergulhe fundo na Palavra: hoje é [Livro] [Capítulo]!",
+        "🔥🙏 Fé renovada com [Livro] [Capítulo] — ouça até o fim!",
+        "📖💥 Capítulo impactante hoje! Vamos para [Livro] [Capítulo]!",
+        "🌿📚 Alimente seu espírito com [Livro] [Capítulo]!",
+        "✝️📖 Se você ama a Palavra, acompanhe [Livro] [Capítulo] comigo!",
+        "💫📜 Um novo capítulo, uma nova direção — [Livro] [Capítulo]!",
+        "🛐📖 Tempo de ouvir Deus através de [Livro] [Capítulo]!",
+        "🔥📚 Palavra forte, direta e viva — hoje: [Livro] [Capítulo]!",
+        "🌞📖 Começando mais um dia com [Livro] [Capítulo] — que Deus fale ao seu coração!",
+        "👑📜 A Bíblia é viva! Hoje vamos ler [Livro] [Capítulo]!",
+        "🙏✨ Capítulo do dia: [Livro] [Capítulo] — receba essa Palavra!",
+        "📖🚀 Projeto Bíblia completa! Hoje estamos em [Livro] [Capítulo] — vem comigo!"
+    ]
+    
+    hashtags = "#biblia #fe #devocional #jesus #oracao"
+    
+    # Escolhe um template aleatório
+    template = random.choice(templates)
+    
+    # Substitui os placeholders
+    final_desc = template.replace("[Livro]", book).replace("[Capítulo]", chapter)
+    
+    return f"{final_desc}\n\n{hashtags}"
 
 def get_oldest_video(s3, bucket, prefix):
     response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
@@ -59,7 +104,6 @@ def main():
     AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID')
     AWS_SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
     COOKIES_FILE = 'cookies.txt'
-    STORAGE_FILE = 'localStorage.json'
     PRONTOS_PREFIX = 'biblia/videos/prontos/'
     POSTADOS_PREFIX = 'biblia/videos/postados/'
 
@@ -77,14 +121,15 @@ def main():
     local_filename = 'video_to_upload.mp4'
     s3.download_file(S3_BUCKET, video_key, local_filename)
     
-    description = f"Hoje vamos ler Genesis {extract_chapter(os.path.basename(video_key))}"
+    filename_base = os.path.basename(video_key)
+    description = generate_description(filename_base)
+    
+    print(f"Uploading: {filename_base}")
+    print(f"Description: {description}")
+    sys.stdout.flush()
     
     try:
         from tiktok_uploader.upload import TikTokUploader
-        
-        # Para injetar o localStorage, teríamos que hackear a lib mais a fundo.
-        # Infelizmente a lib cria o próprio browser e contexto internamente.
-        # Vou tentar passar o localStorage via cookies, que é o que ela aceita.
         
         uploader = TikTokUploader(cookies=COOKIES_FILE)
         print("Iniciando upload...")
